@@ -1,31 +1,75 @@
 import React, { useState, useEffect } from "react";
 
+const API_URL = "https://your-backend-api.com/api/users"; // Update this!
+
 export default function AdminUsers() {
-  // Dummy users data - replace with fetch from backend later
-  const [users, setUsers] = useState([
-    { id: 1, name: "Alice Johnson", email: "alice@example.com", role: "user" },
-    { id: 2, name: "Bob Smith", email: "bob@example.com", role: "business" },
-    { id: 3, name: "Carol White", email: "carol@example.com", role: "user" },
-    { id: 4, name: "David Green", email: "david@example.com", role: "admin" },
-  ]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Delete user handler (dummy)
+  // Fetch users from backend
+  useEffect(() => {
+    setLoading(true);
+    fetch(API_URL)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch users");
+        return res.json();
+      })
+      .then((data) => {
+        setUsers(data);
+        setError(null);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Delete user handler with backend call
   const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
-      setUsers(users.filter((user) => user.id !== id));
-      alert("User deleted!");
-    }
+    if (!window.confirm("Are you sure you want to delete this user?")) return;
+
+    fetch(`${API_URL}/${id}`, {
+      method: "DELETE",
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to delete user");
+        setUsers(users.filter((user) => user.id !== id));
+        alert("User deleted!");
+      })
+      .catch((err) => alert(err.message));
   };
 
-  // Update user role handler (dummy)
+  // Update user role handler with backend call
   const handleRoleChange = (id, newRole) => {
-    setUsers(
-      users.map((user) =>
-        user.id === id ? { ...user, role: newRole } : user
-      )
-    );
-    alert("User role updated!");
+    fetch(`${API_URL}/${id}`, {
+      method: "PATCH", // or PUT depending on your API
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: newRole }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to update user role");
+        setUsers(
+          users.map((user) =>
+            user.id === id ? { ...user, role: newRole } : user
+          )
+        );
+        alert("User role updated!");
+      })
+      .catch((err) => alert(err.message));
   };
+
+  if (loading)
+    return (
+      <div className="max-w-5xl mx-auto p-6 bg-white rounded-md shadow-md mt-10 text-center">
+        Loading users...
+      </div>
+    );
+
+  if (error)
+    return (
+      <div className="max-w-5xl mx-auto p-6 bg-white rounded-md shadow-md mt-10 text-center text-red-600">
+        Error: {error}
+      </div>
+    );
 
   return (
     <div className="max-w-5xl mx-auto p-6 bg-white rounded-md shadow-md mt-10">

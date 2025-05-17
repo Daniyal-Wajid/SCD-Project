@@ -8,16 +8,38 @@ export default function ContactUs() {
   });
 
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // For now, just simulate submission
-    setSubmitted(true);
-    // You can add backend integration later, babe
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (res.ok) {
+        setSubmitted(true);
+        setFormData({ name: "", email: "", message: "" });
+      } else {
+        const error = await res.json();
+        alert("Submission failed: " + error.message);
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      alert("Something went wrong. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -79,9 +101,12 @@ export default function ContactUs() {
 
           <button
             type="submit"
-            className="bg-primary text-white px-6 py-3 rounded-md hover:bg-primary-dark transition"
+            disabled={loading}
+            className={`bg-primary text-white px-6 py-3 rounded-md hover:bg-primary-dark transition ${
+              loading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
-            Send Message
+            {loading ? "Sending..." : "Send Message"}
           </button>
         </form>
       )}

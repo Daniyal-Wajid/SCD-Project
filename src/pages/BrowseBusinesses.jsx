@@ -1,38 +1,28 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 export default function BrowseBusiness() {
-  // Dummy data for now - replace with API fetch later
-  const [businesses, setBusinesses] = useState([
-    {
-      id: 1,
-      name: "Glamour Events",
-      owner: "Alice Johnson",
-      description: "Luxury weddings and corporate events.",
-      city: "New York",
-      imageUrl: "https://source.unsplash.com/400x300/?wedding",
-    },
-    {
-      id: 2,
-      name: "Party Perfect",
-      owner: "Bob Smith",
-      description: "Fun and vibrant birthday parties and more.",
-      city: "Los Angeles",
-      imageUrl: "https://source.unsplash.com/400x300/?party",
-    },
-    {
-      id: 3,
-      name: "Elegant Affairs",
-      owner: "Catherine Lee",
-      description: "Elegant decor and seamless event planning.",
-      city: "Chicago",
-      imageUrl: "https://source.unsplash.com/400x300/?event",
-    },
-    // Add more dummy or fetched businesses here
-  ]);
-
+  const [businesses, setBusinesses] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // Filter businesses by search term (name or city)
+  useEffect(() => {
+    const fetchBusinesses = async () => {
+      try {
+        const res = await axios.get("/api/businesses"); // Replace with actual endpoint
+        setBusinesses(res.data);
+      } catch (err) {
+        setError("Failed to load businesses. Please try again.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBusinesses();
+  }, []);
+
   const filteredBusinesses = businesses.filter(
     (b) =>
       b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -53,13 +43,17 @@ export default function BrowseBusiness() {
         />
       </div>
 
-      {filteredBusinesses.length === 0 ? (
+      {loading ? (
+        <p className="text-gray-500">Loading businesses...</p>
+      ) : error ? (
+        <p className="text-red-500">{error}</p>
+      ) : filteredBusinesses.length === 0 ? (
         <p className="text-gray-500">No businesses found matching your search.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
           {filteredBusinesses.map((business) => (
             <div
-              key={business.id}
+              key={business._id || business.id}
               className="border border-gray-200 rounded-lg shadow hover:shadow-lg transition cursor-pointer overflow-hidden"
             >
               <img

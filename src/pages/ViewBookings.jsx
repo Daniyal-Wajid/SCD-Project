@@ -5,42 +5,43 @@ export default function ViewBookings() {
   const { userType } = useContext(AuthContext);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // Dummy bookings for now - replace with real API call
   useEffect(() => {
-    setLoading(true);
+    const fetchBookings = async () => {
+      setLoading(true);
+      setError("");
 
-    // Example dummy data
-    const dummyBookings = [
-      {
-        id: "B001",
-        eventName: "Wedding Ceremony",
-        date: "2025-06-01",
-        status: "Confirmed",
-        customerName: "Alice Johnson",
-        services: ["Hall", "Catering"],
-      },
-      {
-        id: "B002",
-        eventName: "Corporate Meetup",
-        date: "2025-06-15",
-        status: "Pending",
-        customerName: "Bob Smith",
-        services: ["Decor"],
-      },
-    ];
+      try {
+        // Adjust endpoint as per your backend
+        const response = await fetch(`/api/bookings?userType=${userType}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch bookings.");
+        }
+        const data = await response.json();
+        setBookings(data); // Expecting an array of bookings
+      } catch (err) {
+        setError(err.message || "Something went wrong.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // Simulate API delay
-    setTimeout(() => {
-      setBookings(dummyBookings);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    fetchBookings();
+  }, [userType]);
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
         <p className="text-xl text-gray-500">Loading bookings...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center mt-16 text-red-600">
+        <p>{error}</p>
       </div>
     );
   }

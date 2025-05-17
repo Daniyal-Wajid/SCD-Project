@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const Login = () => {
   const { login } = useContext(AuthContext);
@@ -15,22 +15,38 @@ const Login = () => {
     setError("");
 
     try {
-      // Fake login simulation
-      // Replace this with actual API call
-      if (email === "user@example.com" && password === "password") {
-        login({ email, userType: "user" });
-        navigate("/dashboard");
-      } else if (email === "business@example.com" && password === "password") {
-        login({ email, userType: "business" });
-        navigate("/dashboard");
-      } else if (email === "admin@example.com" && password === "password") {
-        login({ email, userType: "admin" });
-        navigate("/dashboard");
+      const apiUrl = process.env.REACT_APP_API_URL;
+      if (!apiUrl) {
+        setError("API URL is not configured.");
+        return;
+      }
+
+      const res = await fetch(`${apiUrl}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Update auth context with user and token
+        login(data.user, data.token);
+
+        // Redirect user based on their userType
+        if (data.user.userType === "admin") {
+          navigate("/admin/dashboard");
+        } else if (data.user.userType === "business") {
+          navigate("/business/dashboard");
+        } else {
+          navigate("/dashboard"); // normal user dashboard
+        }
       } else {
-        setError("Invalid email or password");
+        setError(data.message || "Invalid email or password");
       }
     } catch (err) {
-      setError("Something went wrong. Try again.");
+      console.error("Login error:", err);
+      setError("Something went wrong. Please try again.");
     }
   };
 
@@ -83,9 +99,9 @@ const Login = () => {
 
         <p className="mt-4 text-center text-gray-600">
           Don’t have an account?{" "}
-          <a href="/register" className="text-indigo-600 hover:underline">
+          <Link to="/register" className="text-indigo-600 hover:underline">
             Register here
-          </a>
+          </Link>
         </p>
       </form>
     </div>

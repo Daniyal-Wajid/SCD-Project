@@ -19,21 +19,34 @@ export default function RegisterBusiness() {
     setSuccess("");
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const { businessName, email, password, confirmPassword, phone, address } = formData;
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  const { businessName, email, password, confirmPassword, phone, address } = formData;
 
-    if (!businessName || !email || !password || !confirmPassword || !phone || !address) {
-      setError("Please fill out all fields.");
+  if (!businessName || !email || !password || !confirmPassword || !phone || !address) {
+    setError("Please fill out all fields.");
+    return;
+  }
+  if (password !== confirmPassword) {
+    setError("Passwords do not match.");
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/business/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ businessName, email, password, phone, address }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.message || "Failed to register business. Please try again.");
       return;
     }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-    // TODO: Add email format validation and password strength if needed
-
-    // TODO: Connect to backend API to register business
 
     setSuccess("Business registered successfully!");
     setFormData({
@@ -44,7 +57,11 @@ export default function RegisterBusiness() {
       phone: "",
       address: "",
     });
-  };
+  } catch (err) {
+    setError("Something went wrong. Please try again later.");
+  }
+};
+
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">

@@ -1,23 +1,47 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 export default function UserDashboardPage() {
-  // Dummy bookings data for demo; later replace with API call
-  const bookings = [
-    {
-      id: 1,
-      event: "Wedding Reception",
-      date: "2025-06-20",
-      services: ["Hall", "Catering"],
-      status: "Confirmed",
-    },
-    {
-      id: 2,
-      event: "Corporate Meetup",
-      date: "2025-07-05",
-      services: ["Decor"],
-      status: "Pending",
-    },
-  ];
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const response = await fetch("/api/bookings"); // your backend endpoint
+        if (!response.ok) {
+          throw new Error("Failed to load bookings.");
+        }
+        const data = await response.json();
+        setBookings(data); // assuming backend returns an array of bookings
+      } catch (err) {
+        setError(err.message || "Something went wrong.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex justify-center items-center">
+        <p className="text-xl text-gray-500">Loading your bookings...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex justify-center items-center">
+        <p className="text-xl text-red-500">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-light p-6">
@@ -36,14 +60,14 @@ export default function UserDashboardPage() {
               >
                 <h3 className="text-xl font-semibold text-primary">{booking.event}</h3>
                 <p className="text-dark">Date: {booking.date}</p>
-                <p className="text-dark">
-                  Services: {booking.services.join(", ")}
-                </p>
+                <p className="text-dark">Services: {booking.services.join(", ")}</p>
                 <p
                   className={`mt-2 font-semibold ${
                     booking.status === "Confirmed"
                       ? "text-green-600"
-                      : "text-yellow-600"
+                      : booking.status === "Pending"
+                      ? "text-yellow-600"
+                      : "text-red-600"
                   }`}
                 >
                   Status: {booking.status}

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
+import axios from "axios";
 
 export default function ProfileSettings() {
-  const { user, updateUserProfile } = useContext(AuthContext);
-
+  const { user, setUser } = useContext(AuthContext); // assume setUser updates context
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -38,11 +38,20 @@ export default function ProfileSettings() {
     setMessage(null);
 
     try {
-      // Simulate API call to update profile
-      await updateUserProfile(formData);
+      const res = await axios.put(`/api/users/${user._id}`, formData, {
+        headers: {
+          Authorization: `Bearer ${user.token}`, // include token if required
+        },
+      });
+
+      setUser(res.data.updatedUser); // update context with new user data
       setMessage({ type: "success", text: "Profile updated successfully!" });
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to update profile." });
+      setMessage({
+        type: "error",
+        text:
+          error.response?.data?.message || "Failed to update profile.",
+      });
     } finally {
       setLoading(false);
     }
@@ -55,7 +64,9 @@ export default function ProfileSettings() {
       {message && (
         <div
           className={`mb-4 p-3 rounded ${
-            message.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+            message.type === "success"
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
           }`}
         >
           {message.text}

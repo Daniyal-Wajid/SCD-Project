@@ -1,21 +1,45 @@
 import React, { useState } from "react";
+import axios from "axios";
 
 export default function Register() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    userType: "user", // default to regular user
+    userType: "user",
   });
+
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(null);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Add your register logic here, e.g., API call
-    console.log("Registering:", formData);
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const res = await axios.post("/api/auth/register", formData);
+      setMessage({ type: "success", text: "Account created successfully! You can now log in." });
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+        userType: "user",
+      });
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text:
+          error.response?.data?.message ||
+          "Registration failed. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -24,6 +48,19 @@ export default function Register() {
         <h2 className="text-3xl font-bold text-primary mb-6 text-center">
           Create Your Account
         </h2>
+
+        {message && (
+          <div
+            className={`mb-4 p-3 rounded ${
+              message.type === "success"
+                ? "bg-green-100 text-green-800"
+                : "bg-red-100 text-red-800"
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Name */}
           <div>
@@ -39,6 +76,7 @@ export default function Register() {
               required
               className="w-full px-4 py-2 border border-secondary rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Your full name"
+              disabled={loading}
             />
           </div>
 
@@ -56,6 +94,7 @@ export default function Register() {
               required
               className="w-full px-4 py-2 border border-secondary rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="you@example.com"
+              disabled={loading}
             />
           </div>
 
@@ -73,6 +112,7 @@ export default function Register() {
               required
               className="w-full px-4 py-2 border border-secondary rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="At least 8 characters"
+              disabled={loading}
             />
           </div>
 
@@ -90,6 +130,7 @@ export default function Register() {
                   checked={formData.userType === "user"}
                   onChange={handleChange}
                   className="form-radio text-primary"
+                  disabled={loading}
                 />
                 <span className="ml-2 text-dark">User</span>
               </label>
@@ -101,6 +142,7 @@ export default function Register() {
                   checked={formData.userType === "business"}
                   onChange={handleChange}
                   className="form-radio text-primary"
+                  disabled={loading}
                 />
                 <span className="ml-2 text-dark">Business Owner</span>
               </label>
@@ -110,9 +152,10 @@ export default function Register() {
           {/* Submit */}
           <button
             type="submit"
+            disabled={loading}
             className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 rounded-md transition duration-300"
           >
-            Register
+            {loading ? "Registering..." : "Register"}
           </button>
         </form>
       </div>

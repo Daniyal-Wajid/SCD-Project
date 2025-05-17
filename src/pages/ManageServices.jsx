@@ -1,23 +1,40 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 export default function ManageServices() {
-  // Mock services data for now
-  const [services, setServices] = useState([
-    { id: 1, name: "Grand Hall", type: "Hall", price: 1000 },
-    { id: 2, name: "Floral Decoration", type: "Decor", price: 500 },
-    { id: 3, name: "Gourmet Catering", type: "Catering", price: 1500 },
-  ]);
+  const { token } = useContext(AuthContext); // assuming token is in context
+  const apiUrl = process.env.REACT_APP_API_URL;
 
+  const [services, setServices] = useState([]);
   const [formData, setFormData] = useState({
     id: null,
     name: "",
     type: "Hall",
     price: "",
   });
-
   const [isEditing, setIsEditing] = useState(false);
-
   const serviceTypes = ["Hall", "Decor", "Catering", "Food"];
+
+  // Fetch services on component mount
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/services`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setServices(data);
+        } else {
+          console.error("Failed to fetch services:", data.message);
+        }
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      }
+    };
+
+    fetchServices();
+  }, [apiUrl, token]);
 
   const resetForm = () => {
     setFormData({ id: null, name: "", type: "Hall", price: "" });
@@ -29,35 +46,51 @@ export default function ManageServices() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddService = (e) => {
+  const handleAddService = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.price) return;
 
-    if (isEditing) {
-      // Update existing service
-      setServices((prev) =>
-        prev.map((svc) =>
-          svc.id === formData.id
-            ? { ...svc, name: formData.name, type: formData.type, price: Number(formData.price) }
-            : svc
-        )
-      );
-    } else {
-      // Add new service
-      const newService = {
-        id: Date.now(),
-        name: formData.name,
-        type: formData.type,
-        price: Number(formData.price),
+    try {
+      const requestOptions = {
+        method: isEditing ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          type: formData.type,
+          price: Number(formData.price),
+        }),
       };
-      setServices((prev) => [...prev, newService]);
+
+      const endpoint = isEditing
+        ? `${apiUrl}/services/${formData.id}`
+        : `${apiUrl}/services`;
+
+      const res = await fetch(endpoint, requestOptions);
+      const data = await res.json();
+
+      if (res.ok) {
+        if (isEditing) {
+          setServices((prev) =>
+            prev.map((svc) => (svc._id === formData.id ? data : svc))
+          );
+        } else {
+          setServices((prev) => [...prev, data]);
+        }
+        resetForm();
+      } else {
+        console.error("Service save failed:", data.message);
+      }
+    } catch (err) {
+      console.error("Error saving service:", err);
     }
-    resetForm();
   };
 
   const handleEdit = (service) => {
     setFormData({
-      id: service.id,
+      id: service._id,
       name: service.name,
       type: service.type,
       price: service.price,
@@ -65,9 +98,25 @@ export default function ManageServices() {
     setIsEditing(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this service?")) {
-      setServices((prev) => prev.filter((svc) => svc.id !== id));
+      try {
+        const res = await fetch(`${apiUrl}/services/${id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          setServices((prev) => prev.filter((svc) => svc._id !== id));
+        } else {
+          const data = await res.json();
+          console.error("Failed to delete:", data.message);
+        }
+      } catch (err) {
+        console.error("Error deleting service:", err);
+      }
     }
   };
 
@@ -155,7 +204,7 @@ export default function ManageServices() {
           <ul className="space-y-4">
             {services.map((svc) => (
               <li
-                key={svc.id}
+                key={svc._id}
                 className="flex justify-between items-center bg-secondary/10 rounded-md p-4 shadow-sm"
               >
                 <div>
@@ -171,7 +220,7 @@ export default function ManageServices() {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(svc.id)}
+                    onClick={() => handleDelete(svc._id)}
                     className="text-red-600 hover:text-red-700 font-semibold"
                   >
                     Delete
